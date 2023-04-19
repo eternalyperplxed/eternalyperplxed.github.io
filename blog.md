@@ -1,5 +1,5 @@
 ---
 layout: blog-index
-title: My Blog
-description: Test
+title: Security Duct Tape
+description: Blog articles for Security Duct Tape
 ---
