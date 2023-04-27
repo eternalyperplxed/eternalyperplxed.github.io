@@ -73,7 +73,7 @@ Prerequisites:
   - Copy the long number that is listed in the output
   - Run `git config --global user.signingKey <copied data from previous command>`
   - Run `git config --global commit.gpgSign true`
-  - Run `git config --global gpg.program gpg` 
+  - Run `git config --global gpg.program gpg` (NOTE: Windows users will need to replace `gpg` value with `C:\Program Files (x86)\GnuPG\bin\gpg.exe)`
 
 <br>9. Enforce signed commits on repository<br>In Github, requiring signed commits is a per repository setting (at least with free accounts)
   - Navigate to your repository and go to settings
