@@ -35,8 +35,8 @@ blog: on
 remote_theme: luxedo/jekyll-theme-potato-hacker
 theme_base: "dark"
 theme_switch: on
-plugins:
-  - jekyll-feed
+#plugins:
+#  - jekyll-feed
 
 collections:
   items:
