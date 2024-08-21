@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Building a DIY Voice Satellite for Home Assistant
+title: Building a DIY Voice Satellite for Home Assistant Pt. 1
 date: 2024-08-19 21:52
 tag: smart_home
 ---
@@ -18,11 +18,11 @@ In the realm of home automation, there are few platforms as flexible or capable 
 
 As cool as saying "Hey Jarvis" is, I wanted to let my nerd flag fly a bit more. See, I grew up on episodes Star Trek: The Next Generation, therefore I wanted my voice assistant to be named Geordi, after the chief engineer, Geordi La Forge, of the USS Enterprise (NCC-1701-D). 
 
-Luckily, Home Assistant has a great write up [here](https://www.home-assistant.io/voice_control/create_wake_word/#to-create-your-own-wake-word) which works wonderfully. Once your custom wake word is generated and you have the .tflte file, you can move on to configuring the Raspberry Pi.
+Luckily, Home Assistant has a great write up [here](https://www.home-assistant.io/voice_control/create_wake_word/#to-create-your-own-wake-word) which works wonderfully. Once your custom wake word is generated and you have the .tflte file you'll need to rename it to *wake_word*_v0.1.tflite, replacing *wake_word* with whatever you configured above. In my case, the file is hey_geordi_v0.1.tflite.
 
 ## Configure the Raspberry Pi Zero 2
 
-Follow the steps in Slacker Lab's write up to install the Raspberry Pi Lite OS. Make sure to assign the hostname and user to be something recognizable and also set your region specific information. Raspberry Pi's typically default to en-GB settings since they're a UK based company.
+Follow the steps in Slacker Lab's write up to install the Raspberry Pi Lite OS. Make sure to assign the hostname and user to be something recognizable and also set your region specific information. Raspberry Pi's typically default to en-GB settings since they're a UK based company. Bonus points if you use an SSH key in place of a password.
 
 Note: Do not connect the ReSpeaker HAT to the Pi since we still need to install the drivers.
 
@@ -88,6 +88,7 @@ sudo systemctl edit --force --full wyoming-satellite.service
 ```
 
 Copy and Paste the Service Configuration.
+<br>
 NOTE: If you're not using the `pi` user, be sure to replace that values with your username in the `ExecStart` and the `WorkingDirectory` lines. Also, change `my-satellite` to whatever you want the device to be called.
 ```
 [Unit]
@@ -121,3 +122,94 @@ or
 sudo systemctl status wyoming-satellite
 ```
 
+### Install and Configure Wake Word
+
+Assuming you're still connected via SSH, run the following:
+```
+sudo apt-get install --no-install-recommends libopenblas-dev
+```
+
+Navigate to your Home Directory
+```
+cd ~/
+```
+
+Clone the Wyoming-OpenWakeWord Files
+```
+git clone https://github.com/rhasspy/wyoming-openwakeword.git
+```
+
+Transfer Your Custom Wake Word
+<br>
+You'll need to transfer the .tflite file you generated to the Rapsberry Pi. From your host computer where you downloaded the file run:
+```
+scp wake_word_v0.1.tflite username@hostname:.
+```
+Replace *username* and *hostname* with whatever user is configured on the Pi and it's hostname respectively.
+
+Move Custom Wake Word to Correct Folder
+<br>
+The file will now be at the root of your home directory, and it needs to be moved to the models folder in wyoming-openwakeword.
+```
+mv wake_word_v0.1.tflite wyoming-openwakeword/wyoming_openwakeword/models/.
+```
+
+Navigate to the Wyoming-OpenWakeWord Folder
+```
+cd wyoming-openwakeword
+```
+
+Run the Setup Script
+```
+script/setup
+```
+
+Create the Open Wake Word Service
+```
+sudo systemctl edit --force --full wyoming-openwakeword.service
+```
+
+Copy and Paste the Service Configuration
+<br>
+NOTE: If you're not using the `pi` user, be sure to replace that values with your username in the `ExecStart` and the `WorkingDirectory` lines.
+```
+[Unit]
+Description=Wyoming openWakeWord
+
+[Service]
+Type=simple
+ExecStart=/home/pi/wyoming-openwakeword/script/run --uri 'tcp://127.0.0.1:10400'
+WorkingDirectory=/home/pi/wyoming-openwakeword
+Restart=always
+RestartSec=1
+
+[Install]
+WantedBy=default.target
+```
+
+Link Wake Word Service to Satellite Service
+```
+sudo systemctl edit --force --full wyoming-satellite.service
+```
+
+Edit Satellite Service
+<br>
+Add the following line under the `[Unit]` block
+```
+Requires=wyoming-openwakeword.service
+```
+
+Add Wake Word to Service
+<br>
+Add the following line (inserting your wake word) to the end of the `ExecStart` command
+```
+--wake-uri 'tcp://127.0.0.1:10400' --wake-word-name 'hey_geordi'
+```
+Press `CTRL-O` followed by `CTRL-X` to save and exit
+
+Reload and Restart Services
+```
+sudo systemctl daemon-reload && sudo systemctl restart wyoming-satellite.service
+```
+
+In Part 2, we'll configure the LEDs, install the Snapcast client, and complete the configuration in Home Assistant.
